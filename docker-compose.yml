@@ -3,8 +3,8 @@ services:
     build: .
     container_name: youtube-transcript-api
     restart: unless-stopped
-    networks:
-      - traefik
+    ports:
+      - "8000:8000"
     labels:
       # Enable Traefik
       - "traefik.enable=true"
@@ -26,22 +26,7 @@ services:
       
       # Service
       - "traefik.http.services.youtube-transcript.loadbalancer.server.port=8000"
-      
-      # Optional: Add CORS headers if needed
-      # - "traefik.http.middlewares.youtube-transcript-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS"
-      # - "traefik.http.middlewares.youtube-transcript-cors.headers.accesscontrolalloworiginlist=*"
-      # - "traefik.http.middlewares.youtube-transcript-cors.headers.accesscontrolmaxage=100"
-      # - "traefik.http.middlewares.youtube-transcript-cors.headers.addvaryheader=true"
     
     # Optional environment variables
     environment:
       - PORT=8000
-    
-    # Optional: Mount for logs or persistent data
-    # volumes:
-    #   - ./logs:/app/logs
-
-networks:
-  traefik:
-    external: true
-    name: traefik  # Change this to your actual Traefik network name if different
