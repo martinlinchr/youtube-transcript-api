@@ -44,32 +44,33 @@ def get_transcript(
         lang_list = languages.split(',') if languages else ['en']
         lang_list = [lang.strip() for lang in lang_list]
         
-        # Fetch transcript
+        # Fetch transcript - returns a list of dicts
+        fetched_transcript = YouTubeTranscriptApi.get_transcript(
+            video_id, 
+            languages=lang_list,
+            preserve_formatting=preserve_formatting
+        )
+        
+        # If translation is requested, we need to use the transcript list approach
         if translate_to:
             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
             transcript = transcript_list.find_transcript(lang_list)
             translated = transcript.translate(translate_to)
             fetched_transcript = translated.fetch()
-        else:
-            fetched_transcript = YouTubeTranscriptApi.get_transcript(
-                video_id, 
-                languages=lang_list,
-                preserve_formatting=preserve_formatting
-            )
         
         # Format output
         if format.lower() == "text":
             formatter = TextFormatter()
             formatted = formatter.format_transcript(fetched_transcript)
-            return {"transcript": formatted, "format": "text"}
+            return {"transcript": formatted, "format": "text", "video_id": video_id}
         elif format.lower() == "srt":
             formatter = SRTFormatter()
             formatted = formatter.format_transcript(fetched_transcript)
-            return {"transcript": formatted, "format": "srt"}
+            return {"transcript": formatted, "format": "srt", "video_id": video_id}
         elif format.lower() == "webvtt":
             formatter = WebVTTFormatter()
             formatted = formatter.format_transcript(fetched_transcript)
-            return {"transcript": formatted, "format": "webvtt"}
+            return {"transcript": formatted, "format": "webvtt", "video_id": video_id}
         else:  # json
             return {
                 "video_id": video_id,
