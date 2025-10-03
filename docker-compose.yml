@@ -44,3 +44,4 @@ services:
 networks:
   traefik:
     external: true
+    name: traefik  # Change this to your actual Traefik network name if different
