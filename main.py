@@ -78,6 +78,11 @@ def get_transcript(
             }
             
     except Exception as e:
+        # Log the full error for debugging
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"Error fetching transcript for {video_id}: {error_traceback}")
+        
         error_message = str(e)
         
         # Provide more helpful error messages
@@ -91,7 +96,7 @@ def get_transcript(
         elif "transcript disabled" in error_message.lower():
             raise HTTPException(status_code=403, detail="Transcripts are disabled for this video")
         else:
-            raise HTTPException(status_code=400, detail=f"Error fetching transcript: {error_message}")
+            raise HTTPException(status_code=400, detail=f"Error: {error_message}")
 
 @app.get("/list/{video_id}")
 def list_transcripts(video_id: str):
