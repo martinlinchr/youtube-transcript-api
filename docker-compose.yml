@@ -1,0 +1,46 @@
+services:
+  youtube-transcript-api:
+    build: .
+    container_name: youtube-transcript-api
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+      
+      # HTTP Router
+      - "traefik.http.routers.youtube-transcript.rule=Host(`youtube-transcript-api.martin-linde.com`)"
+      - "traefik.http.routers.youtube-transcript.entrypoints=web"
+      
+      # HTTPS Router
+      - "traefik.http.routers.youtube-transcript-secure.rule=Host(`youtube-transcript-api.martin-linde.com`)"
+      - "traefik.http.routers.youtube-transcript-secure.entrypoints=websecure"
+      - "traefik.http.routers.youtube-transcript-secure.tls=true"
+      - "traefik.http.routers.youtube-transcript-secure.tls.certresolver=letsencrypt"
+      
+      # Middleware - Redirect HTTP to HTTPS
+      - "traefik.http.middlewares.youtube-transcript-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.youtube-transcript-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.youtube-transcript.middlewares=youtube-transcript-redirect"
+      
+      # Service
+      - "traefik.http.services.youtube-transcript.loadbalancer.server.port=8000"
+      
+      # Optional: Add CORS headers if needed
+      # - "traefik.http.middlewares.youtube-transcript-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS"
+      # - "traefik.http.middlewares.youtube-transcript-cors.headers.accesscontrolalloworiginlist=*"
+      # - "traefik.http.middlewares.youtube-transcript-cors.headers.accesscontrolmaxage=100"
+      # - "traefik.http.middlewares.youtube-transcript-cors.headers.addvaryheader=true"
+    
+    # Optional environment variables
+    environment:
+      - PORT=8000
+    
+    # Optional: Mount for logs or persistent data
+    # volumes:
+    #   - ./logs:/app/logs
+
+networks:
+  traefik:
+    external: true
