@@ -77,7 +77,20 @@ def get_transcript(
             }
             
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        error_message = str(e)
+        
+        # Provide more helpful error messages
+        if "no element found" in error_message.lower():
+            raise HTTPException(
+                status_code=404, 
+                detail="No transcript found. This video may not have captions/subtitles available, or it might be a YouTube Shorts video (which often lack transcripts)."
+            )
+        elif "video unavailable" in error_message.lower():
+            raise HTTPException(status_code=404, detail="Video not found or unavailable")
+        elif "transcript disabled" in error_message.lower():
+            raise HTTPException(status_code=403, detail="Transcripts are disabled for this video")
+        else:
+            raise HTTPException(status_code=400, detail=f"Error fetching transcript: {error_message}")
 
 @app.get("/list/{video_id}")
 def list_transcripts(video_id: str):
