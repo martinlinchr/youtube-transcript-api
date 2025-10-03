@@ -40,23 +40,37 @@ def get_transcript(
     - **translate_to**: Translate the transcript to specified language
     """
     try:
-        # Parse languages
+        # Parse languages  
         lang_list = languages.split(',') if languages else ['en']
         lang_list = [lang.strip() for lang in lang_list]
         
-        # Fetch transcript - returns a list of dicts
-        fetched_transcript = YouTubeTranscriptApi.get_transcript(
-            video_id, 
-            languages=lang_list,
-            preserve_formatting=preserve_formatting
-        )
+        # Try different approaches
+        try:
+            # Approach 1: Direct get_transcript (fastest when it works)
+            fetched_transcript = YouTubeTranscriptApi.get_transcript(
+                video_id,
+                languages=tuple(lang_list) if len(lang_list) > 1 else (lang_list[0],)
+            )
+        except Exception as e1:
+            print(f"Direct get_transcript failed: {e1}")
+            # Approach 2: Use list then fetch
+            try:
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                transcript = transcript_list.find_transcript(lang_list)
+                if translate_to:
+                    transcript = transcript.translate(translate_to)
+                fetched_transcript = transcript.fetch()
+            except Exception as e2:
+                print(f"List and fetch approach also failed: {e2}")
+                raise Exception(f"Unable to fetch transcript. This might be due to YouTube blocking requests from this server's IP address. Try using a proxy or a different video. Original errors: {str(e1)}, {str(e2)}")
         
-        # If translation is requested, we need to use the transcript list approach
-        if translate_to:
+        # If we got here, we have the transcript
+        # Handle translation if needed and not already done
+        if translate_to and not isinstance(fetched_transcript, list):
             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
             transcript = transcript_list.find_transcript(lang_list)
-            translated = transcript.translate(translate_to)
-            fetched_transcript = translated.fetch()
+            transcript = transcript.translate(translate_to)
+            fetched_transcript = transcript.fetch()
         
         # Format output
         if format.lower() == "text":
