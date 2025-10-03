@@ -123,6 +123,40 @@ def list_transcripts(video_id: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/test/{video_id}")
+def test_transcript(video_id: str):
+    """
+    Test endpoint to debug transcript fetching issues
+    Shows detailed error information
+    """
+    try:
+        # Try to list transcripts first
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        
+        available = []
+        for transcript in transcript_list:
+            available.append({
+                "language": transcript.language,
+                "language_code": transcript.language_code,
+                "is_generated": transcript.is_generated
+            })
+        
+        return {
+            "status": "success",
+            "video_id": video_id,
+            "available_transcripts": available,
+            "message": "Video has transcripts available"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "video_id": video_id,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "traceback": traceback.format_exc()
+        }
+
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
