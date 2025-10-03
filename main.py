@@ -40,20 +40,18 @@ def get_transcript(
     - **translate_to**: Translate the transcript to specified language
     """
     try:
-        ytt_api = YouTubeTranscriptApi()
-        
         # Parse languages
         lang_list = languages.split(',') if languages else ['en']
         lang_list = [lang.strip() for lang in lang_list]
         
         # Fetch transcript
         if translate_to:
-            transcript_list = ytt_api.list(video_id)
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
             transcript = transcript_list.find_transcript(lang_list)
             translated = transcript.translate(translate_to)
             fetched_transcript = translated.fetch()
         else:
-            fetched_transcript = ytt_api.fetch(
+            fetched_transcript = YouTubeTranscriptApi.get_transcript(
                 video_id, 
                 languages=lang_list,
                 preserve_formatting=preserve_formatting
@@ -74,11 +72,8 @@ def get_transcript(
             return {"transcript": formatted, "format": "webvtt"}
         else:  # json
             return {
-                "video_id": fetched_transcript.video_id,
-                "language": fetched_transcript.language,
-                "language_code": fetched_transcript.language_code,
-                "is_generated": fetched_transcript.is_generated,
-                "transcript": fetched_transcript.to_raw_data()
+                "video_id": video_id,
+                "transcript": fetched_transcript
             }
             
     except Exception as e:
@@ -92,8 +87,7 @@ def list_transcripts(video_id: str):
     - **video_id**: YouTube video ID
     """
     try:
-        ytt_api = YouTubeTranscriptApi()
-        transcript_list = ytt_api.list(video_id)
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         
         transcripts = []
         for transcript in transcript_list:
