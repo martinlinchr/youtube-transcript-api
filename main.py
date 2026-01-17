@@ -57,26 +57,31 @@ def get_transcript(
     lang_list = [lang.strip() for lang in lang_list]
 
     try:
-        # 1) brug list_transcripts for at matche /test-logikken og 0.6.2-dokumentationen
+        # list_transcripts -> find_transcript -> fetch
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-
         transcript = transcript_list.find_transcript(lang_list)
 
         if translate_to:
             transcript = transcript.translate(translate_to)
 
-        # fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
+        # retry-logic omkring fetch for ParseError
         try:
-            fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
-except ParseError as e:
-            # enkelt retry – YouTube kan en sjælden gang returnere tomt svar
+            fetched_transcript = transcript.fetch(
+                preserve_formatting=preserve_formatting
+            )
+        except ParseError:
+            # enkelt retry – YouTube kan indimellem returnere tomt svar
             try:
-                fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
+                fetched_transcript = transcript.fetch(
+                    preserve_formatting=preserve_formatting
+                )
             except ParseError:
-                # giv en mere meningsfuld fejl
                 raise HTTPException(
                     status_code=502,
-                    detail="YouTube returned an invalid transcript response (ParseError). Try again in a moment or with a different video."
+                    detail=(
+                        "YouTube returned an invalid transcript response (ParseError). "
+                        "Try again in a moment or with a different video."
+                    ),
                 )
 
         fmt = format.lower()
@@ -109,7 +114,6 @@ except ParseError as e:
             }
 
         else:  # json
-            # fetched_transcript er allerede en liste af dicts i 0.6.x
             return {
                 "video_id": video_id,
                 "transcript": fetched_transcript,
@@ -128,6 +132,9 @@ except ParseError as e:
             status_code=403,
             detail="Transcripts are disabled for this video.",
         )
+    except HTTPException:
+        # allerede håndteret ovenfor
+        raise
     except Exception as e:
         import traceback
 
