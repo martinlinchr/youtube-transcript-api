@@ -1,3 +1,4 @@
+from xml.etree.ElementTree import ParseError
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from typing import Optional, List
@@ -64,7 +65,19 @@ def get_transcript(
         if translate_to:
             transcript = transcript.translate(translate_to)
 
-        fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
+        # fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
+        try:
+            fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
+except ParseError as e:
+            # enkelt retry – YouTube kan en sjælden gang returnere tomt svar
+            try:
+                fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
+            except ParseError:
+                # giv en mere meningsfuld fejl
+                raise HTTPException(
+                    status_code=502,
+                    detail="YouTube returned an invalid transcript response (ParseError). Try again in a moment or with a different video."
+                )
 
         fmt = format.lower()
 
