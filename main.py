@@ -1,9 +1,15 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api.formatters import JSONFormatter, TextFormatter, SRTFormatter, WebVTTFormatter
 from typing import Optional, List
 import uvicorn
+
+from youtube_transcript_api import (
+    YouTubeTranscriptApi,
+    NoTranscriptFound,
+    TranscriptsDisabled,
+)
+from youtube_transcript_api._errors import RequestBlocked, IpBlocked
+from youtube_transcript_api.formatters import JSONFormatter, TextFormatter, SRTFormatter, WebVTTFormatter
 
 app = FastAPI(
     title="YouTube Transcript API",
@@ -32,96 +38,86 @@ def get_transcript(
 ):
     """
     Fetch transcript for a YouTube video
-    
+
     - **video_id**: YouTube video ID (not the full URL)
     - **languages**: Preferred languages in priority order (default: en)
     - **format**: Output format (json, text, srt, webvtt)
-    - **preserve_formatting**: Keep HTML tags like <i> and <b>
+    - **preserve_formatting**: Keep HTML tags like <i> and <b> (not used directly here)
     - **translate_to**: Translate the transcript to specified language
     """
+    # parse languages
+    lang_list = languages.split(',') if languages else ['en']
+    lang_list = [lang.strip() for lang in lang_list]
+
     try:
-        # Parse languages  
-        lang_list = languages.split(',') if languages else ['en']
-        lang_list = [lang.strip() for lang in lang_list]
-        
-        # Try different approaches
-        try:
-            # Approach 1: Direct get_transcript (fastest when it works)
-            fetched_transcript = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=tuple(lang_list) if len(lang_list) > 1 else (lang_list[0],)
-            )
-        except Exception as e1:
-            print(f"Direct get_transcript failed: {e1}")
-            # Approach 2: Use list then fetch
-            try:
-                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-                transcript = transcript_list.find_transcript(lang_list)
-                if translate_to:
-                    transcript = transcript.translate(translate_to)
-                fetched_transcript = transcript.fetch()
-            except Exception as e2:
-                print(f"List and fetch approach also failed: {e2}")
-                raise Exception(f"Unable to fetch transcript. This might be due to YouTube blocking requests from this server's IP address. Try using a proxy or a different video. Original errors: {str(e1)}, {str(e2)}")
-        
-        # If we got here, we have the transcript
-        # Handle translation if needed and not already done
-        if translate_to and not isinstance(fetched_transcript, list):
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            transcript = transcript_list.find_transcript(lang_list)
+        # 1) brug samme pattern som i /test
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript = transcript_list.find_transcript(lang_list)
+
+        if translate_to:
             transcript = transcript.translate(translate_to)
-            fetched_transcript = transcript.fetch()
-        
-        # Format output
-        if format.lower() == "text":
+
+        # preserve_formatting understøttes af formatters, ikke direkte her,
+        # så vi lader formatterne håndtere det hvis nødvendigt.
+        fetched_transcript = transcript.fetch()
+
+        # 2) format output
+        fmt = format.lower()
+
+        if fmt == "text":
             formatter = TextFormatter()
             formatted = formatter.format_transcript(fetched_transcript)
             return {"transcript": formatted, "format": "text", "video_id": video_id}
-        elif format.lower() == "srt":
+
+        elif fmt == "srt":
             formatter = SRTFormatter()
             formatted = formatter.format_transcript(fetched_transcript)
             return {"transcript": formatted, "format": "srt", "video_id": video_id}
-        elif format.lower() == "webvtt":
+
+        elif fmt == "webvtt":
             formatter = WebVTTFormatter()
             formatted = formatter.format_transcript(fetched_transcript)
             return {"transcript": formatted, "format": "webvtt", "video_id": video_id}
+
         else:  # json
+            # fetched_transcript er en liste af dicts kompatibelt med JSON
             return {
                 "video_id": video_id,
                 "transcript": fetched_transcript
             }
-            
+
+    except NoTranscriptFound:
+        raise HTTPException(
+            status_code=404,
+            detail="No transcript found. This video may not have captions/subtitles available, or it might be a YouTube Shorts video."
+        )
+    except TranscriptsDisabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Transcripts are disabled for this video."
+        )
+    except (RequestBlocked, IpBlocked) as e:
+        # gør IP‑blokkering tydelig hvis det sker
+        raise HTTPException(
+            status_code=503,
+            detail=f"Requests are being blocked by YouTube for this server IP: {str(e)}. Configure a proxy to continue."
+        )
     except Exception as e:
-        # Log the full error for debugging
         import traceback
         error_traceback = traceback.format_exc()
         print(f"Error fetching transcript for {video_id}: {error_traceback}")
-        
-        error_message = str(e)
-        
-        # Provide more helpful error messages
-        if "no element found" in error_message.lower():
-            raise HTTPException(
-                status_code=404, 
-                detail="No transcript found. This video may not have captions/subtitles available, or it might be a YouTube Shorts video (which often lack transcripts)."
-            )
-        elif "video unavailable" in error_message.lower():
-            raise HTTPException(status_code=404, detail="Video not found or unavailable")
-        elif "transcript disabled" in error_message.lower():
-            raise HTTPException(status_code=403, detail="Transcripts are disabled for this video")
-        else:
-            raise HTTPException(status_code=400, detail=f"Error: {error_message}")
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
 @app.get("/list/{video_id}")
 def list_transcripts(video_id: str):
     """
     List all available transcripts for a video
-    
+
     - **video_id**: YouTube video ID
     """
     try:
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        
+
         transcripts = []
         for transcript in transcript_list:
             transcripts.append({
@@ -134,12 +130,12 @@ def list_transcripts(video_id: str):
                     for lang in transcript.translation_languages
                 ] if transcript.is_translatable else []
             })
-        
+
         return {
             "video_id": video_id,
             "available_transcripts": transcripts
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -150,9 +146,8 @@ def test_transcript(video_id: str):
     Shows detailed error information
     """
     try:
-        # Try to list transcripts first
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        
+
         available = []
         for transcript in transcript_list:
             available.append({
@@ -160,7 +155,7 @@ def test_transcript(video_id: str):
                 "language_code": transcript.language_code,
                 "is_generated": transcript.is_generated
             })
-        
+
         return {
             "status": "success",
             "video_id": video_id,
