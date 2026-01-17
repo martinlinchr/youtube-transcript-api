@@ -59,7 +59,7 @@
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://vcyon.com/logo/vcyon-logo-text-dark.png">
       <source media="(prefers-color-scheme: light)" srcset="https://vcyon.com/logo/vcyon-logo-text-light.png">
-      <img alt="Dumpling AI" src="https://vcyon.com/logo/vcyon-logo-text-light.png" height="40px" style="vertical-align: middle;">
+      <img alt="VCyon" src="https://vcyon.com/logo/vcyon-logo-text-light.png" height="40px" style="vertical-align: middle;">
     </picture>
   </a>
 </p>
@@ -534,7 +534,7 @@ youtube_transcript_api "\-abc123"
 
 ### Working around IP bans using the CLI
 
-If you are running into `ReqestBlocked` or `IpBlocked` errors, because YouTube blocks your IP, you can work around this 
+If you are running into `RequestBlocked` or `IpBlocked` errors, because YouTube blocks your IP, you can work around this 
 using residential proxies as explained in 
 [Working around IP bans](#working-around-ip-bans-requestblocked-or-ipblocked-exception). To use
 [Webshare "Residential" proxies](https://www.webshare.io/?referral_code=w0xno53eb50g) through the CLI, you will have to 
@@ -594,4 +594,5 @@ If this project makes you happy by reducing your development time, you can make 
 coffee, or become a [Sponsor of this project](https://github.com/sponsors/jdepoix) :)  
 
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BAENLEW8VUJ6G&source=url)
+
 
