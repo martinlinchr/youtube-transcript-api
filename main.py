@@ -8,7 +8,7 @@ from youtube_transcript_api import (
     NoTranscriptFound,
     TranscriptsDisabled,
 )
-from youtube_transcript_api._errors import RequestBlocked, IpBlocked
+
 from youtube_transcript_api.formatters import JSONFormatter, TextFormatter, SRTFormatter, WebVTTFormatter
 
 app = FastAPI(
