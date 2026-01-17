@@ -4,8 +4,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "youtube-transcript-api"
-version = "1.2.2"
-description = "This is an python API which allows you to get the transcripts/subtitles for a given YouTube video. It also works for automatically generated subtitles, supports translating subtitles and it does not require a headless browser, like other selenium based solutions do!"
+version = "1.2.3"
+description = "This is a python API which allows you to get the transcripts/subtitles for a given YouTube video. It also works for automatically generated subtitles, supports translating subtitles and it does not require a headless browser, like other selenium based solutions do!"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -32,6 +32,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [tool.poetry.scripts]
@@ -47,7 +49,7 @@ lint = "ruff check youtube_transcript_api"
 precommit.shell = "poe format && poe lint && poe coverage"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.14"
+python = ">=3.8,<3.15"
 requests = "*"
 defusedxml = "^0.7.1"
 
@@ -91,4 +93,3 @@ exclude_lines = [
     "@abstractclassmethod",
     "@abstractstaticmethod"
 ]
-show_missing = true
