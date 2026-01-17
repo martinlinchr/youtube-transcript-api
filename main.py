@@ -96,12 +96,6 @@ def get_transcript(
             status_code=403,
             detail="Transcripts are disabled for this video."
         )
-    except (RequestBlocked, IpBlocked) as e:
-        # gør IP‑blokkering tydelig hvis det sker
-        raise HTTPException(
-            status_code=503,
-            detail=f"Requests are being blocked by YouTube for this server IP: {str(e)}. Configure a proxy to continue."
-        )
     except Exception as e:
         import traceback
         error_traceback = traceback.format_exc()
