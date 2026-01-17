@@ -3,12 +3,11 @@ from fastapi.responses import JSONResponse
 from typing import Optional, List
 import uvicorn
 
+import youtube_transcript_api
 from youtube_transcript_api import (
-    YouTubeTranscriptApi,
     NoTranscriptFound,
     TranscriptsDisabled,
 )
-
 from youtube_transcript_api.formatters import JSONFormatter, TextFormatter, SRTFormatter, WebVTTFormatter
 
 app = FastAPI(
@@ -38,30 +37,20 @@ def get_transcript(
 ):
     """
     Fetch transcript for a YouTube video
-
-    - **video_id**: YouTube video ID (not the full URL)
-    - **languages**: Preferred languages in priority order (default: en)
-    - **format**: Output format (json, text, srt, webvtt)
-    - **preserve_formatting**: Keep HTML tags like <i> and <b> (not used directly here)
-    - **translate_to**: Translate the transcript to specified language
     """
-    # parse languages
     lang_list = languages.split(',') if languages else ['en']
     lang_list = [lang.strip() for lang in lang_list]
 
     try:
-        # 1) brug samme pattern som i /test
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        # brug modul-funktionerne i stedet for klasse-metoder
+        transcript_list = youtube_transcript_api.list_transcripts(video_id)
         transcript = transcript_list.find_transcript(lang_list)
 
         if translate_to:
             transcript = transcript.translate(translate_to)
 
-        # preserve_formatting understøttes af formatters, ikke direkte her,
-        # så vi lader formatterne håndtere det hvis nødvendigt.
-        fetched_transcript = transcript.fetch()
+        fetched_transcript = transcript.fetch(preserve_formatting=preserve_formatting)
 
-        # 2) format output
         fmt = format.lower()
 
         if fmt == "text":
@@ -80,7 +69,6 @@ def get_transcript(
             return {"transcript": formatted, "format": "webvtt", "video_id": video_id}
 
         else:  # json
-            # fetched_transcript er en liste af dicts kompatibelt med JSON
             return {
                 "video_id": video_id,
                 "transcript": fetched_transcript
@@ -106,11 +94,9 @@ def get_transcript(
 def list_transcripts(video_id: str):
     """
     List all available transcripts for a video
-
-    - **video_id**: YouTube video ID
     """
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript_list = youtube_transcript_api.list_transcripts(video_id)
 
         transcripts = []
         for transcript in transcript_list:
@@ -137,10 +123,9 @@ def list_transcripts(video_id: str):
 def test_transcript(video_id: str):
     """
     Test endpoint to debug transcript fetching issues
-    Shows detailed error information
     """
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript_list = youtube_transcript_api.list_transcripts(video_id)
 
         available = []
         for transcript in transcript_list:
@@ -168,7 +153,6 @@ def test_transcript(video_id: str):
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint"""
     return {"status": "healthy"}
 
 if __name__ == "__main__":
